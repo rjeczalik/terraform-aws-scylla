@@ -36,6 +36,14 @@ resource "aws_instance" "scylla" {
 	count = "${var.cluster_count}"
 }
 
+data "template_file" "scylla_cidr" {
+	template = "$${cidr}"
+	count = "${var.cluster_count}"
+	vars = {
+		cidr = "${element(aws_instance.scylla.*.public_ip, count.index)}/32"
+	}
+}
+
 resource "aws_instance" "monitor" {
 	ami = "${lookup(var.aws_ami_ubuntu, var.aws_region)}"
 	instance_type = "t2.small"
@@ -84,7 +92,7 @@ resource "null_resource" "scylla" {
 		content = <<-EOF
 			#!/bin/bash
 
-			set -euo pipefail
+			set -eu
 
 			export PRICATE_IP=${element(aws_instance.scylla.*.private_ip, count.index)}
 			export PUBLIC_IP=${element(aws_instance.scylla.*.public_ip, count.index)}
@@ -102,7 +110,7 @@ resource "null_resource" "scylla" {
 
 	provisioner "remote-exec" {
 		inline = [
-			"chmod +X /tmp/provision-scylla.sh",
+			"chmod +x /tmp/provision-scylla.sh",
 			"/tmp/provision-scylla.sh"
 		]
 	}
@@ -128,7 +136,7 @@ resource "null_resource" "monitor" {
 		content = <<-EOF
 			#!/bin/bash
 
-			set -euo pipefail
+			set -eu
 
 			export PRICATE_IP=${aws_instance.monitor.private_ip}
 			export PUBLIC_IP=${aws_instance.monitor.public_ip}
@@ -146,7 +154,7 @@ resource "null_resource" "monitor" {
 
 	provisioner "remote-exec" {
 		inline = [
-			"chmod +X /tmp/provision-monitor.sh",
+			"chmod +x /tmp/provision-monitor.sh",
 			"/tmp/provision-monitor.sh"
 		]
 	}
@@ -254,37 +262,31 @@ resource "aws_security_group" "cluster" {
 
 resource "aws_security_group_rule" "cluster_egress" {
 	type = "egress"
-	name = "cluster-egress"
 	security_group_id = "${aws_security_group.cluster.id}"
 	cidr_blocks = ["0.0.0.0/0"]
 	from_port = "0"
 	to_port = "0"
 	protocol = "-1"
-	self = true
 }
 
 resource "aws_security_group_rule" "cluster_ingress" {
 	type = "ingress"
-	name = "cluster-ingress-${element(var.node_ports, count.index)}"
 	security_group_id = "${aws_security_group.cluster.id}"
-	cidr_blocks = ["${append(aws_instance.scylla.*.public_ip, aws_instance.monitor.public_ip)}"]
+	cidr_blocks = ["${aws_instance.monitor.public_ip}/32", "${data.template_file.scylla_cidr.*.rendered}"]
 	from_port = "${element(var.node_ports, count.index)}"
 	to_port = "${element(var.node_ports, count.index)}"
 	protocol = "tcp"
-	self = true
 
 	count = "${length(var.node_ports)}"
 }
 
 resource "aws_security_group_rule" "cluster_monitor" {
 	type = "ingress"
-	name = "cluster-monitor-${element(var.monitor_ports, count.index)}"
 	security_group_id = "${aws_security_group.cluster.id}"
-	cidr_blocks = ["${aws_instance.monitor.public_ip}"]
+	cidr_blocks = ["${aws_instance.monitor.public_ip}/32"]
 	from_port = "${element(var.monitor_ports, count.index)}"
 	to_port = "${element(var.monitor_ports, count.index)}"
 	protocol = "tcp"
-	self = true
 
 	count = "${length(var.monitor_ports)}"
 }
@@ -300,26 +302,22 @@ resource "aws_security_group" "cluster_admin" {
 	}
 }
 
-resource "aws_security_group" "cluster_admin_egress" {
+resource "aws_security_group_rule" "cluster_admin_egress" {
 	type = "egress"
-	name = "cluster-admin-egress"
 	security_group_id = "${aws_security_group.cluster_admin.id}"
 	cidr_blocks = ["0.0.0.0/0"]
 	from_port = 0
 	to_port = 0
 	protocol = "-1"
-	self = true
 }
 
 resource "aws_security_group_rule" "cluster_admin_ingress" {
 	type = "ingress"
-	name = "cluster-admin-ingress-${element(var.admin_ports, count.index)}"
 	security_group_id = "${aws_security_group.cluster_admin.id}"
 	cidr_blocks = "${var.cluster_admin_cidr}"
 	from_port = "${element(var.admin_ports, count.index)}"
 	to_port = "${element(var.admin_ports, count.index)}"
 	protocol = "tcp"
-	self = true
 
 	count = "${length(var.admin_ports)}"
 }
@@ -335,26 +333,22 @@ resource "aws_security_group" "cluster_user" {
 	}
 }
 
-resource "aws_security_group" "cluster_user_egress" {
+resource "aws_security_group_rule" "cluster_user_egress" {
 	type = "egress"
-	name = "cluster-user-egress"
 	security_group_id = "${aws_security_group.cluster_user.id}"
 	cidr_blocks = ["0.0.0.0/0"]
 	from_port = 0
 	to_port = 0
 	protocol = "-1"
-	self = true
 }
 
 resource "aws_security_group_rule" "cluster_user_ingress" {
 	type = "ingress"
-	name = "cluster-user-ingress-${element(var.user_ports, count.index)}"
 	security_group_id = "${aws_security_group.cluster_user.id}"
 	cidr_blocks = "${var.cluster_user_cidr}"
 	from_port = "${element(var.user_ports, count.index)}"
 	to_port = "${element(var.user_ports, count.index)}"
 	protocol = "tcp"
-	self = true
 
 	count = "${length(var.user_ports)}"
 }

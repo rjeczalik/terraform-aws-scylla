@@ -4,8 +4,8 @@ variable "aws_region" { }
 
 variable "cluster_id" { }
 variable "cluster_count" { default = 1 }
-variable "cluster_admin_cidr" { }
-variable "cluster_user_cidr" { }
+variable "cluster_admin_cidr" { type = "list" }
+variable "cluster_user_cidr" { type = "list" }
 
 variable "block_device_type" { }
 variable "block_device_size" { }
@@ -16,6 +16,7 @@ variable "private_key" { default = "keys/support.pem" }
 variable "public_key"	{ default = "keys/support.pub" }
 
 variable "admin_ports" {
+	type = "list"
 	default = [
 		22,
 		3000,
@@ -26,6 +27,7 @@ variable "admin_ports" {
 }
 
 variable "user_ports" {
+	type = "list"
 	default = [
 		9042,
 		9160
@@ -33,6 +35,7 @@ variable "user_ports" {
 }
 
 variable "node_ports" {
+	type = "list"
 	default = [
 		7000,
 		7001
@@ -40,6 +43,7 @@ variable "node_ports" {
 }
 
 variable "monitor_ports" {
+	type = "list"
 	default = [
 		9100,
 		9180
@@ -47,6 +51,7 @@ variable "monitor_ports" {
 }
 
 variable "aws_availability_zones" {
+	type = "map"
 	default = {
 		"us-east-1" = [
 			"us-east-1a",
@@ -69,6 +74,7 @@ variable "aws_availability_zones" {
 }
 
 variable "aws_ami_monitor" {
+	type = "map"
 	default = {
 		"us-east-1" = "ami-04c172dadae705df1"
 		"us-west-1" = "ami-0a7a96e5da05a6a1a"
@@ -77,6 +83,7 @@ variable "aws_ami_monitor" {
 }
 
 variable "aws_ami_scylla" {
+	type = "map"
 	default = {
 		"us-east-1" = "ami-0f4178bd33d6cfa48"
 		"us-west-1" = "ami-0a9db5299a5ee4409"
@@ -85,6 +92,7 @@ variable "aws_ami_scylla" {
 }
 
 variable "aws_ami_ubuntu" {
+	type = "map"
 	default = {
 		"us-east-1" = "ami-0f9351b59be17920e"
 		"us-west-1" = "ami-0e066bd33054ef120"
