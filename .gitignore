@@ -1,0 +1,7 @@
+terraform.tfvars
+.gitsecret/keys/random_seed
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
+keys/support.pem
+.terraform
