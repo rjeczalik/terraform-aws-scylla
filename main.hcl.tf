@@ -14,8 +14,8 @@ resource "aws_instance" "scylla" {
 	security_groups = [
 		"${aws_security_group.allow_all.id}",
 		"${aws_security_group.cluster.id}",
-		"${aws_security_group.cluster-admin.id}",
-		"${aws_security_group.cluster-user.id}"
+		"${aws_security_group.cluster_admin.id}",
+		"${aws_security_group.cluster_user.id}"
 	]
 
 	root_block_device {
@@ -46,8 +46,8 @@ resource "aws_instance" "monitor" {
 	security_groups = [
 		"${aws_security_group.allow_all.id}",
 		"${aws_security_group.cluster.id}",
-		"${aws_security_group.cluster-admin.id}",
-		"${aws_security_group.cluster-user.id}"
+		"${aws_security_group.cluster_admin.id}",
+		"${aws_security_group.cluster_user.id}"
 	]
 
 	root_block_device {
@@ -252,154 +252,109 @@ resource "aws_security_group" "cluster" {
 	}
 }
 
-resource "aws_security_group_rule" "cluster-nodes-7000" {
+resource "aws_security_group_rule" "cluster_egress" {
+	type = "egress"
+	name = "cluster-egress"
+	security_group_id = "${aws_security_group.cluster.id}"
+	cidr_blocks = ["0.0.0.0/0"]
+	from_port = "0"
+	to_port = "0"
+	protocol = "-1"
+	self = true
+}
+
+resource "aws_security_group_rule" "cluster_ingress" {
 	type = "ingress"
-	name = "cluster-nodes-7000"
+	name = "cluster-ingress-${element(var.node_ports, count.index)}"
+	security_group_id = "${aws_security_group.cluster.id}"
 	cidr_blocks = ["${append(aws_instance.scylla.*.public_ip, aws_instance.monitor.public_ip)}"]
-	from_port = 7000
-	to_port = 7000
+	from_port = "${element(var.node_ports, count.index)}"
+	to_port = "${element(var.node_ports, count.index)}"
 	protocol = "tcp"
 	self = true
+
+	count = "${length(var.node_ports)}"
 }
 
-resource "aws_security_group_rule" "cluster-nodes-7001" {
+resource "aws_security_group_rule" "cluster_monitor" {
 	type = "ingress"
-	name = "cluster-nodes-7001"
-	cidr_blocks = ["${append(aws_instance.scylla.*.public_ip, aws_instance.monitor.public_ip)}"]
-	from_port = 7001
-	to_port = 7001
-	protocol = "tcp"
-	self = true
-}
-
-resource "aws_security_group_rule" "cluster-monitor-9100" {
-	type = "ingress"
-	name = "cluster-monitor-9100"
+	name = "cluster-monitor-${element(var.monitor_ports, count.index)}"
+	security_group_id = "${aws_security_group.cluster.id}"
 	cidr_blocks = ["${aws_instance.monitor.public_ip}"]
-	from_port = 9100
-	to_port = 9100
+	from_port = "${element(var.monitor_ports, count.index)}"
+	to_port = "${element(var.monitor_ports, count.index)}"
 	protocol = "tcp"
 	self = true
+
+	count = "${length(var.monitor_ports)}"
 }
 
-resource "aws_security_group_rule" "cluster-monitor-9180" {
-	type = "ingress"
-	name = "cluster-monitor-9180"
-	cidr_blocks = ["${aws_instance.monitor.public_ip}"]
-	from_port = 9180
-	to_port = 9180
-	protocol = "tcp"
-	self = true
-}
-
-resource "aws_security_group" "cluster-admin" {
+resource "aws_security_group" "cluster_admin" {
 	name = "cluster-admin"
 	description = "Security Group for the admin of cluster #${var.cluster_id}"
 	vpc_id = "${aws_vpc.vpc.id}"
 
-	egress = {
-		cidr_blocks = ["0.0.0.0/0"]
-		from_port = 0
-		to_port = 0
-		protocol = "-1"
-		self = true
-	}
-
-	ingress = {
-		cidr_blocks = ${var.cluster_admin_cidr}
-		from_port = 22
-		to_port = 22
-		protocol = "tcp"
-		self = true
-	}
-
-	ingress = {
-		cidr_blocks = ${var.cluster_admin_cidr}
-		from_port = 3000
-		to_port = 3000
-		protocol = "tcp"
-		self = true
-	}
-
-	ingress = {
-		cidr_blocks = ${var.cluster_admin_cidr}
-		from_port = 9042
-		to_port = 9042
-		protocol = "tcp"
-		self = true
-	}
-
-
-	ingress = {
-		cidr_blocks = ${var.cluster_admin_cidr}
-		from_port = 9090
-		to_port = 9090
-		protocol = "tcp"
-		self = true
-	}
-
-
-	ingress = {
-		cidr_blocks = ${var.cluster_admin_cidr}
-		from_port = 9093
-		to_port = 9093
-		protocol = "tcp"
-		self = true
-	}
-
 	tags = {
 		environment = "${var.environment}"
 		cluster_id	= "${var.cluster_id}"
 	}
 }
 
-resource "aws_security_group" "cluster-user" {
+resource "aws_security_group" "cluster_admin_egress" {
+	type = "egress"
+	name = "cluster-admin-egress"
+	security_group_id = "${aws_security_group.cluster_admin.id}"
+	cidr_blocks = ["0.0.0.0/0"]
+	from_port = 0
+	to_port = 0
+	protocol = "-1"
+	self = true
+}
+
+resource "aws_security_group_rule" "cluster_admin_ingress" {
+	type = "ingress"
+	name = "cluster-admin-ingress-${element(var.admin_ports, count.index)}"
+	security_group_id = "${aws_security_group.cluster_admin.id}"
+	cidr_blocks = "${var.cluster_admin_cidr}"
+	from_port = "${element(var.admin_ports, count.index)}"
+	to_port = "${element(var.admin_ports, count.index)}"
+	protocol = "tcp"
+	self = true
+
+	count = "${length(var.admin_ports)}"
+}
+
+resource "aws_security_group" "cluster_user" {
 	name = "cluster-user"
 	description = "Security Group for the user of cluster #${var.cluster_id}"
 	vpc_id = "${aws_vpc.vpc.id}"
 
-	egress = {
-		cidr_blocks = ["0.0.0.0/0"]
-		from_port = 0
-		protocol = "-1"
-		self = true
-		to_port = 0
-	}
-
-	ingress = {
-		cidr_blocks = ${var.cluster_user_cidr}
-		from_port = 9042
-		to_port = 9042
-		protocol = "tcp"
-		self = true
-	}
-
-
-	ingress = {
-		cidr_blocks = ${var.cluster_user_cidr}
-		from_port = 9160
-		to_port = 9160
-		protocol = "tcp"
-		self = true
-	}
-
 	tags = {
 		environment = "${var.environment}"
 		cluster_id	= "${var.cluster_id}"
 	}
 }
 
-variable "aws_access_key" { }
-variable "aws_secret_key" { }
-variable "aws_region" { }
+resource "aws_security_group" "cluster_user_egress" {
+	type = "egress"
+	name = "cluster-user-egress"
+	security_group_id = "${aws_security_group.cluster_user.id}"
+	cidr_blocks = ["0.0.0.0/0"]
+	from_port = 0
+	to_port = 0
+	protocol = "-1"
+	self = true
+}
 
-variable "cluster_id" { }
-variable "cluster_count" { default = 1 }
+resource "aws_security_group_rule" "cluster_user_ingress" {
+	type = "ingress"
+	name = "cluster-user-ingress-${element(var.user_ports, count.index)}"
+	security_group_id = "${aws_security_group.cluster_user.id}"
+	cidr_blocks = "${var.cluster_user_cidr}"
+	from_port = "${element(var.user_ports, count.index)}"
+	to_port = "${element(var.user_ports, count.index)}"
+	protocol = "tcp"
+	self = true
 
-variable "block_device_type" { }
-variable "block_device_size" { }
-variable "block_device_iops" { }
-
-variable "environment" { default = "development" }
-variable "private_key" { default = "keys/support.pem" }
-variable "public_key"	{ default = "keys/support.pub" }
+	count = "${length(var.user_ports)}"
+}

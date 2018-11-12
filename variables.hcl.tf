@@ -1,3 +1,51 @@
+variable "aws_access_key" { }
+variable "aws_secret_key" { }
+variable "aws_region" { }
+
+variable "cluster_id" { }
+variable "cluster_count" { default = 1 }
+variable "cluster_admin_cidr" { }
+variable "cluster_user_cidr" { }
+
+variable "block_device_type" { }
+variable "block_device_size" { }
+variable "block_device_iops" { }
+
+variable "environment" { default = "development" }
+variable "private_key" { default = "keys/support.pem" }
+variable "public_key"	{ default = "keys/support.pub" }
+
+variable "admin_ports" {
+	default = [
+		22,
+		3000,
+		9042,
+		9090,
+		9093
+	]
+}
+
+variable "user_ports" {
+	default = [
+		9042,
+		9160
+	]
+}
+
+variable "node_ports" {
+	default = [
+		7000,
+		7001
+	]
+}
+
+variable "monitor_ports" {
+	default = [
+		9100,
+		9180
+	]
+}
+
 variable "aws_availability_zones" {
 	default = {
 		"us-east-1" = [
