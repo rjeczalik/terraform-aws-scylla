@@ -12,7 +12,6 @@ resource "aws_instance" "scylla" {
 	availability_zone = "${element(var.aws_availability_zones[var.aws_region], count.index % length(var.aws_availability_zones[var.aws_region]))}"
 	subnet_id = "${element(aws_subnet.subnet.*.id, count.index)}"
 	security_groups = [
-		"${aws_security_group.allow_all.id}",
 		"${aws_security_group.cluster.id}",
 		"${aws_security_group.cluster_admin.id}",
 		"${aws_security_group.cluster_user.id}"
@@ -52,7 +51,6 @@ resource "aws_instance" "monitor" {
 	availability_zone = "${element(var.aws_availability_zones[var.aws_region], 0)}"
 	subnet_id = "${element(aws_subnet.subnet.*.id, 0)}"
 	security_groups = [
-		"${aws_security_group.allow_all.id}",
 		"${aws_security_group.cluster.id}",
 		"${aws_security_group.cluster_admin.id}",
 		"${aws_security_group.cluster_user.id}"
@@ -220,33 +218,6 @@ resource "aws_route_table_association" "public" {
 	subnet_id = "${element(aws_subnet.subnet.*.id, count.index)}"
 
 	count = "${var.cluster_count}"
-}
-
-resource "aws_security_group" "allow_all" {
-	name = "allow_all"
-	description = "Allow all inbound and outbound traffic"
-	vpc_id = "${aws_vpc.vpc.id}"
-
-	egress = {
-		cidr_blocks = ["0.0.0.0/0"]
-		from_port = 0
-		protocol = "-1"
-		self = true
-		to_port = 0
-	}
-
-	ingress = {
-		cidr_blocks = ["0.0.0.0/0"]
-		from_port = 0
-		protocol = "-1"
-		self = true
-		to_port = 0
-	}
-
-	tags = {
-		environment = "${var.environment}"
-		cluster_id	= "${var.cluster_id}"
-	}
 }
 
 resource "aws_security_group" "cluster" {
