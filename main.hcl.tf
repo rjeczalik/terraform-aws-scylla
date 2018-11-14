@@ -5,12 +5,14 @@ provider "aws" {
 }
 
 resource "aws_instance" "scylla" {
-	ami = "${lookup(var.aws_ami_ubuntu, var.aws_region)}"
-	instance_type = "t2.small"
+	ami = "${lookup(var.aws_ami_scylla, var.aws_region)}"
+	instance_type = "${var.aws_instance_type}"
 	key_name = "${aws_key_pair.support.key_name}"
 	monitoring = true
 	availability_zone = "${element(var.aws_availability_zones[var.aws_region], count.index % length(var.aws_availability_zones[var.aws_region]))}"
 	subnet_id = "${element(aws_subnet.subnet.*.id, count.index)}"
+	user_data = "${format(join("\n", var.scylla_args), var.cluster_name)}"
+
 	security_groups = [
 		"${aws_security_group.cluster.id}",
 		"${aws_security_group.cluster_admin.id}",
@@ -44,8 +46,8 @@ data "template_file" "scylla_cidr" {
 }
 
 resource "aws_instance" "monitor" {
-	ami = "${lookup(var.aws_ami_ubuntu, var.aws_region)}"
-	instance_type = "t2.small"
+	ami = "${lookup(var.aws_ami_monitor, var.aws_region)}"
+	instance_type = "t3.medium"
 	key_name = "${aws_key_pair.support.key_name}"
 	monitoring = true
 	availability_zone = "${element(var.aws_availability_zones[var.aws_region], 0)}"
@@ -58,7 +60,7 @@ resource "aws_instance" "monitor" {
 
 	root_block_device {
 		volume_type = "gp2"
-		volume_size = "8"
+		volume_size = "20"
 		iops = "100"
 	}
 
@@ -80,36 +82,53 @@ resource "null_resource" "scylla" {
 	connection {
 		type = "ssh"
 		host = "${element(aws_instance.scylla.*.public_ip, count.index)}"
-		user = "ubuntu"
+		user = "centos"
 		private_key = "${file(var.private_key)}"
 		timeout = "1m"
 	}
 
 	provisioner "file" {
 		destination = "/tmp/provision-scylla.sh"
-		content = <<-EOF
-			#!/bin/bash
+		content = <<EOF
+#!/bin/bash -x
 
-			set -eu
+set -eu
 
-			export PRICATE_IP=${element(aws_instance.scylla.*.private_ip, count.index)}
-			export PUBLIC_IP=${element(aws_instance.scylla.*.public_ip, count.index)}
+export PATH=/usr/local/bin:$${PATH}
+export SEEDS="${join(",", aws_instance.scylla.*.public_ip)}"
+export PUBLIC_IP=$$(curl http://169.254.169.254/latest/meta-data/public-ipv4)
 
-			for public_ip in ${join(" ", aws_instance.scylla.*.public_ip)}; do
-				echo $$public_ip
-			done
+curl -o /usr/local/bin/yq -sSL https://github.com/mikefarah/yq/releases/download/2.1.2/yq_linux_amd64
+chmod +x /usr/local/bin/yq
 
-			for private_ip in ${join(" ", aws_instance.scylla.*.private_ip)}; do
-				echo $$private_ip
-			done
-		EOF
+pushd /etc/scylla
+
+yq w -i scylla.yaml authenticator PasswordAuthenticator
+yq w -i scylla.yaml authorizer CassandraAuthorizer
+yq w -i scylla.yaml endpoint_snitch GossipingPropertyFileSnitch
+yq w -i scylla.yaml broadcast_address $${PUBLIC_IP}
+yq w -i scylla.yaml broadcast_rpc_address $${PUBLIC_IP}
+yq w -i scylla.yaml cluster_name ${var.cluster_name}
+yq w -i scylla.yaml seed_provider[0].parameters[0].seeds $${SEEDS}
+
+cat >cassandra-rackdc.properties <<EOG
+#
+# cassandra-rackdc.properties
+#
+dc=${var.aws_region}
+rack=${format("Subnet%s", replace(element(aws_instance.scylla.*.availability_zone, count.index), "-", ""))}
+EOG
+
+popd
+
+EOF
 	}
 
 
 	provisioner "remote-exec" {
 		inline = [
 			"chmod +x /tmp/provision-scylla.sh",
-			"/tmp/provision-scylla.sh"
+			"sudo /tmp/provision-scylla.sh"
 		]
 	}
 
@@ -118,46 +137,60 @@ resource "null_resource" "scylla" {
 
 resource "null_resource" "monitor" {
 	triggers {
-		cluster_instance_ids = "${aws_instance.monitor.id}"
+		cluster_instance_ids = "${join(",", aws_instance.scylla.*.id)}"
+		monitor_id = "${aws_instance.monitor.id}"
 	}
 
 	connection {
 		type = "ssh"
 		host = "${aws_instance.monitor.public_ip}"
-		user = "ubuntu"
+		user = "centos"
 		private_key = "${file(var.private_key)}"
 		timeout = "1m"
 	}
 
 	provisioner "file" {
 		destination = "/tmp/provision-monitor.sh"
-		content = <<-EOF
-			#!/bin/bash
+		content = <<EOF
+#!/bin/bash -x
 
-			set -eu
+set -eu
 
-			export PRICATE_IP=${aws_instance.monitor.private_ip}
-			export PUBLIC_IP=${aws_instance.monitor.public_ip}
+export PATH=/usr/local/bin:$${PATH}
 
-			for public_ip in ${join(" ", aws_instance.scylla.*.public_ip)}; do
-				echo $$public_ip
-			done
+curl -o /usr/local/bin/yq -sSL https://github.com/mikefarah/yq/releases/download/2.1.2/yq_linux_amd64
+chmod +x /usr/local/bin/yq
+mkdir -p /tmp/prometheus
 
-			for private_ip in ${join(" ", aws_instance.scylla.*.private_ip)}; do
-				echo $$private_ip
-			done
-		EOF
+pushd /home/centos/scylla-grafana-monitoring-scylla-monitoring
+pushd prometheus
+
+for file in node_exporter_servers.yml scylla_servers.yml; do
+	echo '- {targets: [], labels: {}}' > $${file}
+	yq w -i $${file} [0].labels.cluster ${var.cluster_name}
+	yq w -i $${file} [0].labels.dc ${var.aws_region}
+done
+
+for node_ip in ${join(" ", aws_instance.scylla.*.public_ip)}; do
+	yq w -i node_exporter_servers.yml [0].targets[+] $${node_ip}:9100
+	yq w -i scylla_servers.yml [0].targets[+] $${node_ip}:9180
+done
+
+popd
+
+./start-all.sh -v 2.0 -d /tmp/prometheus
+
+popd
+
+EOF
 	}
-
 
 	provisioner "remote-exec" {
 		inline = [
 			"chmod +x /tmp/provision-monitor.sh",
-			"/tmp/provision-monitor.sh"
+			"sudo /tmp/provision-monitor.sh"
 		]
 	}
-
-	count = "${var.cluster_count}"
 }
 
 

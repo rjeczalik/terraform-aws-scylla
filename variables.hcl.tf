@@ -1,8 +1,10 @@
 variable "aws_access_key" { }
 variable "aws_secret_key" { }
 variable "aws_region" { }
+variable "aws_instance_type" { }
 
 variable "cluster_id" { }
+variable "cluster_name" { }
 variable "cluster_count" { default = 1 }
 variable "cluster_admin_cidr" { type = "list" }
 variable "cluster_user_cidr" { type = "list" }
@@ -14,6 +16,15 @@ variable "block_device_iops" { }
 variable "environment" { default = "development" }
 variable "private_key" { default = "keys/support.pem" }
 variable "public_key"	{ default = "keys/support.pub" }
+
+variable "scylla_args" {
+	type = "list"
+	default = [
+		"--clustername %s",
+		"--totalnodes 1",
+		"--stop-services"
+	]
+}
 
 variable "admin_ports" {
 	type = "list"
