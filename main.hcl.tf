@@ -112,6 +112,31 @@ resource "null_resource" "scylla" {
 	count = "${var.cluster_count}"
 }
 
+resource "null_resource" "scylla_start" {
+	triggers {
+		cluster_instance_ids = "${join(",", aws_instance.scylla.*.id)}"
+		elastic_ips = "${join(",", aws_eip.scylla.*.public_ip)}"
+	}
+
+	connection {
+		type = "ssh"
+		host = "${element(aws_eip.scylla.*.public_ip, count.index)}"
+		user = "centos"
+		private_key = "${file(var.private_key)}"
+		timeout = "1m"
+	}
+
+	provisioner "remote-exec" {
+		inline = [
+			"sudo service scylla-server start"
+		]
+	}
+
+	count = "${var.cluster_count}"
+	depends_on = ["null_resource.scylla"]
+}
+
+
 resource "null_resource" "monitor" {
 	triggers {
 		cluster_instance_ids = "${join(",", aws_instance.scylla.*.id)}"
@@ -158,7 +183,7 @@ resource "null_resource" "monitor" {
 		]
 	}
 
-	depends_on = ["null_resource.scylla"]
+	depends_on = ["null_resource.scylla_start"]
 }
 
 resource "aws_key_pair" "support" {
