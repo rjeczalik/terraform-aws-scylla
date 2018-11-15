@@ -88,8 +88,8 @@ resource "null_resource" "scylla" {
 	}
 
 	provisioner "file" {
-		destination = "/tmp/backup-s3.sh"
-		content = "${data.template_file.backup-s3-sh.rendered}"
+		destination = "/tmp/provision-s3.sh"
+		content = "${data.template_file.provision-s3-sh.rendered}"
 	}
 
 
@@ -102,8 +102,9 @@ resource "null_resource" "scylla" {
 		inline = [
 			"chmod +x /tmp/provision-common.sh",
 			"sudo /tmp/provision-common.sh",
-			"chmod +x /tmp/backup-s3.sh",
-			"sudo /tmp/backup-s3.sh",
+			"chmod +x /tmp/provision-s3.sh",
+			"sudo /tmp/provision-s3.sh",
+			"/tmp/provision-s3.sh",
 			"chmod +x /tmp/provision-scylla.sh",
 		]
 	}

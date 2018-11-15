@@ -1,18 +1,9 @@
-resource "aws_s3_bucket" "backup" {
-	bucket = "${format("dbaas-%s-cluster-bucket-%s", var.environment, var.cluster_id)}"
-	region = "${var.aws_region}"
-	acl = "private"
-	acceleration_status = "Enabled"
+data "template_file" "bucket" {
+	template = "cloud-$${environment}-cluster-bucket-$${cluster_id}"
 
-	tags = {
+	vars = {
 		environment = "${var.environment}"
-		version     = "${var.version}"
-		cluster_id  = "${var.cluster_id}"
-		keep        = "alive"
-	}
-
-	lifecycle {
-		prevent_destroy = true
+		cluster_id = "${var.cluster_id}"
 	}
 }
 
@@ -35,14 +26,14 @@ resource "aws_iam_user_policy" "backup" {
 	"Statement": [{
 		"Effect": "Allow",
 		"Action": ["s3:ListBucket"],
-		"Resource": ["arn:aws:s3:::${aws_s3_bucket.backup.bucket}"]
+		"Resource": ["arn:aws:s3:::${data.template_file.bucket.rendered}"]
 	}, {
 		"Effect": "Allow",
 		"Action": [
 			"s3:PutObject",
 			"s3:GetObject"
 		],
-		"Resource": ["arn:aws:s3:::${aws_s3_bucket.backup.bucket}/*"]
+		"Resource": ["arn:aws:s3:::${data.template_file.bucket.rendered}/*"]
 	}]
 }
 EOF

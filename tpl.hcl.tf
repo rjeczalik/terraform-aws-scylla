@@ -36,11 +36,11 @@ data "template_file" "provision_monitor_sh" {
 	}
 }
 
-data "template_file" "backup-s3-sh" {
-	template = "${file(format("%s/provision/backup-s3.sh", var.template_dir))}"
+data "template_file" "provision-s3-sh" {
+	template = "${file(format("%s/provision/provision-s3.sh", var.template_dir))}"
 
 	vars {
-		bucket = "${aws_s3_bucket.backup.bucket}"
+		bucket = "${data.template_file.bucket.rendered}"
 		region = "${var.aws_region}"
 		access_key = "${aws_iam_access_key.backup.id}"
 		secret_key = "${aws_iam_access_key.backup.secret}"
