@@ -88,45 +88,19 @@ resource "null_resource" "scylla" {
 	}
 
 	provisioner "file" {
-		destination = "/tmp/provision-scylla.sh"
-		content = <<EOF
-#!/bin/bash -x
-
-set -eu
-
-export PATH=/usr/local/bin:$${PATH}
-export SEEDS="${join(",", aws_instance.scylla.*.public_ip)}"
-export PUBLIC_IP=$$(curl http://169.254.169.254/latest/meta-data/public-ipv4)
-
-curl -o /usr/local/bin/yq -sSL https://github.com/mikefarah/yq/releases/download/2.1.2/yq_linux_amd64
-chmod +x /usr/local/bin/yq
-
-pushd /etc/scylla
-
-yq w -i scylla.yaml authenticator PasswordAuthenticator
-yq w -i scylla.yaml authorizer CassandraAuthorizer
-yq w -i scylla.yaml endpoint_snitch GossipingPropertyFileSnitch
-yq w -i scylla.yaml broadcast_address $${PUBLIC_IP}
-yq w -i scylla.yaml broadcast_rpc_address $${PUBLIC_IP}
-yq w -i scylla.yaml cluster_name ${var.cluster_name}
-yq w -i scylla.yaml seed_provider[0].parameters[0].seeds $${SEEDS}
-
-cat >cassandra-rackdc.properties <<EOG
-#
-# cassandra-rackdc.properties
-#
-dc=${var.aws_region}
-rack=${format("Subnet%s", replace(element(aws_instance.scylla.*.availability_zone, count.index), "-", ""))}
-EOG
-
-popd
-
-EOF
+		destination = "/tmp/provision-common.sh"
+		content = "${data.template_file.provision_common_sh.rendered}"
 	}
 
+	provisioner "file" {
+		destination = "/tmp/provision-scylla.sh"
+		content = "${element(data.template_file.provision_scylla_sh.*.rendered, count.index)}"
+	}
 
 	provisioner "remote-exec" {
 		inline = [
+			"chmod +x /tmp/provision-common.sh",
+			"sudo /tmp/provision-common.sh",
 			"chmod +x /tmp/provision-scylla.sh",
 			"sudo /tmp/provision-scylla.sh"
 		]
@@ -155,65 +129,28 @@ resource "null_resource" "monitor" {
 	}
 
 	provisioner "file" {
-		destination = "/tmp/provision-monitor.sh"
-		content = <<EOF
-#!/bin/bash -x
-
-set -eu
-
-useradd support
-mkdir -p /home/support/.ssh
-grep support-scylladb-com /home/centos/.ssh/authorized_keys > /home/support/.ssh/authorized_keys
-echo 'support ALL=(ALL:ALL) NOPASSWD: ALL' >> /etc/sudoers
-chown -R support /home/support/.ssh
-chmod 0700 /home/support/.ssh
-chmod 0600 /home/support/.ssh/authorized_keys
-
-mkdir -p /prometheus-data
-chown -R 65534:65534 /prometheus-data
-curl -o /usr/local/bin/yq -sSL https://github.com/mikefarah/yq/releases/download/2.1.2/yq_linux_amd64
-chmod +x /usr/local/bin/yq
-
-EOF
+		destination = "/tmp/provision-common.sh"
+		content = "${data.template_file.provision_common_sh.rendered}"
 	}
 
 	provisioner "file" {
-		destination = "/tmp/provision-monitor-user.sh"
-		content = <<EOF
-#!/bin/bash -x
+		destination = "/tmp/provision-monitor-common.sh"
+		content = "${data.template_file.provision_monitor_common_sh.rendered}"
+	}
 
-set -eu
-
-pushd scylla-grafana-monitoring-scylla-monitoring
-pushd prometheus
-
-for file in node_exporter_servers.yml scylla_servers.yml; do
-	echo '- {targets: [], labels: {}}' > $${file}
-	yq w -i $${file} [0].labels.cluster ${var.cluster_name}
-	yq w -i $${file} [0].labels.dc ${var.aws_region}
-done
-
-for node_ip in ${join(" ", aws_instance.scylla.*.public_ip)}; do
-	yq w -i node_exporter_servers.yml [0].targets[+] $${node_ip}:9100
-	yq w -i scylla_servers.yml [0].targets[+] $${node_ip}:9180
-done
-
-yq m -i -x rule_config.yml /tmp/rule_config.yml
-
-popd
-
-./start-all.sh -v 2018.1 -d /prometheus-data
-
-popd
-
-EOF
+	provisioner "file" {
+		destination = "/tmp/provision-monitor.sh"
+		content = "${data.template_file.provision_monitor_sh.rendered}"
 	}
 
 	provisioner "remote-exec" {
 		inline = [
-			"chmod +x /tmp/provision-monitor*.sh",
-			"sudo /tmp/provision-monitor.sh",
-			"/tmp/provision-monitor-user.sh",
+			"chmod +x /tmp/provision-common.sh",
+			"sudo /tmp/provision-common.sh",
+			"chmod +x /tmp/provision-monitor-common.sh",
+			"sudo /tmp/provision-monitor-common.sh",
+			"chmod +x /tmp/provision-monitor.sh",
+			"/tmp/provision-monitor.sh"
 		]
 	}
 }
