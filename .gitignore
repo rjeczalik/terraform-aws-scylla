@@ -6,3 +6,4 @@ terraform.tfvars
 keys/support.pem
 .terraform
 TODO
+tpl/rule_config.yml
