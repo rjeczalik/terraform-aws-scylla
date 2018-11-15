@@ -5,7 +5,7 @@ set -eu
 pushd scylla-grafana-monitoring-scylla-monitoring
 pushd prometheus
 
-for file in node_exporter_servers.yml scylla_servers.yml; do
+for file in node_exporter_servers.yml scylla_servers.yml scylla_manager_servers.yml; do
         echo '- {targets: [], labels: {}}' > $${file}
         yq w -i $${file} [0].labels.cluster ${cluster_name}
         yq w -i $${file} [0].labels.dc ${dc}

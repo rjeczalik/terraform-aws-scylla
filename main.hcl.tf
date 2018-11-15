@@ -19,19 +19,15 @@ resource "aws_instance" "scylla" {
 		"${aws_security_group.cluster_user.id}"
 	]
 
-	root_block_device {
-		volume_type = "${var.block_device_type}"
-		volume_size = "${var.block_device_size}"
-		iops = "${var.block_device_iops}"
-	}
-
 	credit_specification {
 		cpu_credits = "unlimited"
 	}
 
 	tags = {
 		environment = "${var.environment}"
+		version     = "${var.version}"
 		cluster_id	= "${var.cluster_id}"
+		keep        = "alive"
 	}
 
 	count = "${var.cluster_count}"
@@ -60,19 +56,15 @@ resource "aws_instance" "monitor" {
 		"${aws_security_group.cluster_user.id}"
 	]
 
-	root_block_device {
-		volume_type = "gp2"
-		volume_size = "20"
-		iops = "100"
-	}
-
 	credit_specification {
 		cpu_credits = "unlimited"
 	}
 
 	tags = {
 		environment = "${var.environment}"
+		version     = "${var.version}"
 		cluster_id	= "${var.cluster_id}"
+		keep        = "alive"
 	}
 }
 
@@ -105,7 +97,6 @@ resource "null_resource" "scylla" {
 			"chmod +x /tmp/provision-common.sh",
 			"sudo /tmp/provision-common.sh",
 			"chmod +x /tmp/provision-scylla.sh",
-			"sudo /tmp/provision-scylla.sh"
 		]
 	}
 
@@ -128,6 +119,7 @@ resource "null_resource" "scylla_start" {
 
 	provisioner "remote-exec" {
 		inline = [
+			"sudo /tmp/provision-scylla.sh",
 			"sudo service scylla-server start"
 		]
 	}
@@ -196,7 +188,9 @@ resource "aws_vpc" "vpc" {
 
 	tags = {
 		environment = "${var.environment}"
+		version     = "${var.version}"
 		cluster_id	= "${var.cluster_id}"
+		keep        = "alive"
 	}
 }
 
@@ -205,7 +199,9 @@ resource "aws_internet_gateway" "vpc_igw" {
 
 	tags = {
 		environment = "${var.environment}"
-		cluster_id	= "${var.cluster_id}"
+		version     = "${var.version}"
+		cluster_id  = "${var.cluster_id}"
+		keep        = "alive"
 	}
 }
 
@@ -217,7 +213,9 @@ resource "aws_subnet" "subnet" {
 
 	tags = {
 		environment = "${var.environment}"
-		cluster_id	= "${var.cluster_id}"
+		version     = "${var.version}"
+		cluster_id  = "${var.cluster_id}"
+		keep        = "alive"
 	}
 
 	count = "${var.cluster_count}"
@@ -249,7 +247,9 @@ resource "aws_route_table" "public" {
 
 	tags = {
 		environment = "${var.environment}"
-		cluster_id	= "${var.cluster_id}"
+		version     = "${var.version}"
+		cluster_id  = "${var.cluster_id}"
+		keep        = "alive"
 	}
 }
 
@@ -267,7 +267,9 @@ resource "aws_security_group" "cluster" {
 
 	tags = {
 		environment = "${var.environment}"
-		cluster_id	= "${var.cluster_id}"
+		version     = "${var.version}"
+		cluster_id  = "${var.cluster_id}"
+		keep        = "alive"
 	}
 }
 
@@ -309,7 +311,9 @@ resource "aws_security_group" "cluster_admin" {
 
 	tags = {
 		environment = "${var.environment}"
-		cluster_id	= "${var.cluster_id}"
+		version     = "${var.version}"
+		cluster_id  = "${var.cluster_id}"
+		keep        = "alive"
 	}
 }
 
@@ -340,7 +344,9 @@ resource "aws_security_group" "cluster_user" {
 
 	tags = {
 		environment = "${var.environment}"
-		cluster_id	= "${var.cluster_id}"
+		version     = "${var.version}"
+		cluster_id  = "${var.cluster_id}"
+		keep        = "alive"
 	}
 }
 
