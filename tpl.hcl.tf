@@ -35,3 +35,14 @@ data "template_file" "provision_monitor_sh" {
 		nodes_ips = "${join(" ", aws_eip.scylla.*.public_ip)}"
 	}
 }
+
+data "template_file" "backup-s3-sh" {
+	template = "${file(format("%s/provision/backup-s3.sh", var.template_dir))}"
+
+	vars {
+		bucket = "${aws_s3_bucket.backup.bucket}"
+		region = "${var.aws_region}"
+		access_key = "${aws_iam_access_key.backup.id}"
+		secret_key = "${aws_iam_access_key.backup.secret}"
+	}
+}
