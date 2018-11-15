@@ -9,8 +9,8 @@ data "template_file" "provision_scylla_sh" {
 	template = "${file(format("%s/provision/scylla.sh", var.template_dir))}"
 
 	vars {
-		public_ip = "${element(aws_instance.scylla.*.public_ip, count.index)}"
-		seeds = "${join(",", aws_instance.scylla.*.public_ip)}"
+		public_ip = "${element(aws_eip.scylla.*.public_ip, count.index)}"
+		seeds = "${join(",", aws_eip.scylla.*.public_ip)}"
 		dc = "${var.aws_region}"
 		rack = "${format("Subnet%s", replace(element(aws_instance.scylla.*.availability_zone, count.index), "-", ""))}"
 		cluster_name = "${var.cluster_name}"
@@ -32,6 +32,6 @@ data "template_file" "provision_monitor_sh" {
 	vars {
 		cluster_name = "${var.cluster_name}"
 		dc = "${var.aws_region}"
-		nodes_ips = "${join(" ", aws_instance.scylla.*.public_ip)}"
+		nodes_ips = "${join(" ", aws_eip.scylla.*.public_ip)}"
 	}
 }

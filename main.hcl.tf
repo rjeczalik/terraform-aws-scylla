@@ -39,10 +39,12 @@ resource "aws_instance" "scylla" {
 
 data "template_file" "scylla_cidr" {
 	template = "$${cidr}"
-	count = "${var.cluster_count}"
+
 	vars = {
-		cidr = "${element(aws_instance.scylla.*.public_ip, count.index)}/32"
+		cidr = "${element(aws_eip.scylla.*.public_ip, count.index)}/32"
 	}
+
+	count = "${var.cluster_count}"
 }
 
 resource "aws_instance" "monitor" {
@@ -77,11 +79,12 @@ resource "aws_instance" "monitor" {
 resource "null_resource" "scylla" {
 	triggers {
 		cluster_instance_ids = "${join(",", aws_instance.scylla.*.id)}"
+		elastic_ips = "${join(",", aws_eip.scylla.*.public_ip)}"
 	}
 
 	connection {
 		type = "ssh"
-		host = "${element(aws_instance.scylla.*.public_ip, count.index)}"
+		host = "${element(aws_eip.scylla.*.public_ip, count.index)}"
 		user = "centos"
 		private_key = "${file(var.private_key)}"
 		timeout = "1m"
@@ -112,12 +115,13 @@ resource "null_resource" "scylla" {
 resource "null_resource" "monitor" {
 	triggers {
 		cluster_instance_ids = "${join(",", aws_instance.scylla.*.id)}"
+		elastic_ips = "${join(",", aws_eip.scylla.*.public_ip)}"
 		monitor_id = "${aws_instance.monitor.id}"
 	}
 
 	connection {
 		type = "ssh"
-		host = "${aws_instance.monitor.public_ip}"
+		host = "${aws_eip.monitor.public_ip}"
 		user = "centos"
 		private_key = "${file(var.private_key)}"
 		timeout = "1m"
@@ -153,6 +157,8 @@ resource "null_resource" "monitor" {
 			"/tmp/provision-monitor.sh"
 		]
 	}
+
+	depends_on = ["null_resource.scylla"]
 }
 
 resource "aws_key_pair" "support" {
@@ -190,6 +196,22 @@ resource "aws_subnet" "subnet" {
 	}
 
 	count = "${var.cluster_count}"
+	depends_on = ["aws_internet_gateway.vpc_igw"]
+}
+
+resource "aws_eip" "scylla" {
+	vpc = true
+	instance = "${element(aws_instance.scylla.*.id, count.index)}"
+
+	count = "${var.cluster_count}"
+	depends_on = ["aws_internet_gateway.vpc_igw"]
+}
+
+resource "aws_eip" "monitor" {
+	vpc = true
+	instance = "${aws_instance.monitor.id}"
+
+	depends_on = ["aws_internet_gateway.vpc_igw"]
 }
 
 resource "aws_route_table" "public" {
@@ -236,7 +258,7 @@ resource "aws_security_group_rule" "cluster_egress" {
 resource "aws_security_group_rule" "cluster_ingress" {
 	type = "ingress"
 	security_group_id = "${aws_security_group.cluster.id}"
-	cidr_blocks = ["${aws_instance.monitor.public_ip}/32", "${data.template_file.scylla_cidr.*.rendered}"]
+	cidr_blocks = ["${aws_eip.monitor.public_ip}/32", "${data.template_file.scylla_cidr.*.rendered}"]
 	from_port = "${element(var.node_ports, count.index)}"
 	to_port = "${element(var.node_ports, count.index)}"
 	protocol = "tcp"
@@ -247,7 +269,7 @@ resource "aws_security_group_rule" "cluster_ingress" {
 resource "aws_security_group_rule" "cluster_monitor" {
 	type = "ingress"
 	security_group_id = "${aws_security_group.cluster.id}"
-	cidr_blocks = ["${aws_instance.monitor.public_ip}/32"]
+	cidr_blocks = ["${aws_eip.monitor.public_ip}/32"]
 	from_port = "${element(var.monitor_ports, count.index)}"
 	to_port = "${element(var.monitor_ports, count.index)}"
 	protocol = "tcp"
