@@ -9,13 +9,16 @@ variable "cluster_count" { default = 1 }
 variable "cluster_admin_cidr" { type = "list" }
 variable "cluster_user_cidr" { type = "list" }
 
+
 variable "block_device_type" { }
 variable "block_device_size" { }
 variable "block_device_iops" { }
 
 variable "environment" { default = "development" }
+
 variable "private_key" { default = "keys/support.pem" }
 variable "public_key"	{ default = "keys/support.pub" }
+variable "template_dir" { default = "tpl" }
 
 variable "scylla_args" {
 	type = "list"

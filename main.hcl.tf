@@ -150,19 +150,41 @@ resource "null_resource" "monitor" {
 	}
 
 	provisioner "file" {
+		destination = "/tmp/rule_config.yml"
+		source = "${var.template_dir}/rule_config.yml"
+	}
+
+	provisioner "file" {
 		destination = "/tmp/provision-monitor.sh"
 		content = <<EOF
 #!/bin/bash -x
 
 set -eu
 
-export PATH=/usr/local/bin:$${PATH}
+useradd support
+mkdir -p /home/support/.ssh
+grep support-scylladb-com /home/centos/.ssh/authorized_keys > /home/support/.ssh/authorized_keys
+echo 'support ALL=(ALL:ALL) NOPASSWD: ALL' >> /etc/sudoers
+chown -R support /home/support/.ssh
+chmod 0700 /home/support/.ssh
+chmod 0600 /home/support/.ssh/authorized_keys
 
+mkdir -p /prometheus-data
+chown -R 65534:65534 /prometheus-data
 curl -o /usr/local/bin/yq -sSL https://github.com/mikefarah/yq/releases/download/2.1.2/yq_linux_amd64
 chmod +x /usr/local/bin/yq
-mkdir -p /tmp/prometheus
 
-pushd /home/centos/scylla-grafana-monitoring-scylla-monitoring
+EOF
+	}
+
+	provisioner "file" {
+		destination = "/tmp/provision-monitor-user.sh"
+		content = <<EOF
+#!/bin/bash -x
+
+set -eu
+
+pushd scylla-grafana-monitoring-scylla-monitoring
 pushd prometheus
 
 for file in node_exporter_servers.yml scylla_servers.yml; do
@@ -176,10 +198,11 @@ for node_ip in ${join(" ", aws_instance.scylla.*.public_ip)}; do
 	yq w -i scylla_servers.yml [0].targets[+] $${node_ip}:9180
 done
 
+yq m -i -x rule_config.yml /tmp/rule_config.yml
+
 popd
 
-./start-all.sh -v 2.0 -d /tmp/prometheus
-# TODO
+./start-all.sh -v 2018.1 -d /prometheus-data
 
 popd
 
@@ -188,16 +211,15 @@ EOF
 
 	provisioner "remote-exec" {
 		inline = [
-			"chmod +x /tmp/provision-monitor.sh",
-			"sudo /tmp/provision-monitor.sh"
+			"chmod +x /tmp/provision-monitor*.sh",
+			"sudo /tmp/provision-monitor.sh",
+			"/tmp/provision-monitor-user.sh",
 		]
 	}
 }
 
-
-
 resource "aws_key_pair" "support" {
-	key_name = "support-key"
+	key_name = "support-scylladb-com"
 	public_key = "${file(var.public_key)}"
 }
 
