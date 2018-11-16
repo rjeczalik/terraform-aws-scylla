@@ -6,6 +6,7 @@ variable "aws_instance_type" { }
 variable "cluster_id" { }
 variable "cluster_name" { }
 variable "cluster_count" { default = 1 }
+variable "cluster_stress_count" { default = 0 }
 variable "cluster_admin_cidr" { type = "list" }
 variable "cluster_user_cidr" { type = "list" }
 
@@ -107,5 +108,14 @@ variable "aws_ami_ubuntu" {
 		"us-east-1" = "ami-0f9351b59be17920e"
 		"us-west-1" = "ami-0e066bd33054ef120"
 		"us-west-2" = "ami-0afae182eed9d2b46"
+	}
+}
+
+variable "aws_ami_centos" {
+	type = "map"
+	default = {
+		"us-east-1" = "ami-4bf3d731"
+		"us-west-1" = "ami-65e0e305"
+		"us-west-2" = "ami-a042f4d8"
 	}
 }

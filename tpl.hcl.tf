@@ -36,8 +36,15 @@ data "template_file" "provision_monitor_sh" {
 	}
 }
 
-data "template_file" "provision-s3-sh" {
-	template = "${file(format("%s/provision/provision-s3.sh", var.template_dir))}"
+data "template_file" "provision_stress_sh" {
+	template = "${file(format("%s/provision/stress.sh", var.template_dir))}"
+
+	vars {
+	}
+}
+
+data "template_file" "provision_s3_sh" {
+	template = "${file(format("%s/provision/s3.sh", var.template_dir))}"
 
 	vars {
 		bucket = "${data.template_file.bucket.rendered}"
