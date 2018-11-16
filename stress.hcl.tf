@@ -47,7 +47,7 @@ resource "null_resource" "stress" {
 
 	provisioner "file" {
 		destination = "/tmp/provision-stress.sh"
-		content = "${data.template_file.provision_stress_sh.rendered}"
+		content = "${element(data.template_file.provision_stress_sh.*.rendered, count.index)}"
 	}
 
 	provisioner "remote-exec" {

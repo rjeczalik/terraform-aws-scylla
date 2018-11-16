@@ -33,16 +33,6 @@ resource "aws_instance" "scylla" {
 	count = "${var.cluster_count}"
 }
 
-data "template_file" "scylla_cidr" {
-	template = "$${cidr}"
-
-	vars = {
-		cidr = "${element(aws_eip.scylla.*.public_ip, count.index)}/32"
-	}
-
-	count = "${var.cluster_count}"
-}
-
 resource "aws_instance" "monitor" {
 	ami = "${lookup(var.aws_ami_monitor, var.aws_region)}"
 	instance_type = "t3.medium"
@@ -89,13 +79,17 @@ resource "null_resource" "scylla" {
 
 	provisioner "file" {
 		destination = "/tmp/provision-s3.sh"
-		content = "${data.template_file.provision-s3-sh.rendered}"
+		content = "${data.template_file.provision_s3_sh.rendered}"
 	}
-
 
 	provisioner "file" {
 		destination = "/tmp/provision-scylla.sh"
 		content = "${element(data.template_file.provision_scylla_sh.*.rendered, count.index)}"
+	}
+
+	provisioner "file" {
+		destination = "/tmp/provision-scylla-schema.sh"
+		content = "${data.template_file.provision_scylla_schema_sh.rendered}"
 	}
 
 	provisioner "remote-exec" {
@@ -106,6 +100,7 @@ resource "null_resource" "scylla" {
 			"sudo /tmp/provision-s3.sh",
 			"/tmp/provision-s3.sh",
 			"chmod +x /tmp/provision-scylla.sh",
+			"chmod +x /tmp/provision-scylla-schema.sh",
 		]
 	}
 
@@ -129,7 +124,8 @@ resource "null_resource" "scylla_start" {
 	provisioner "remote-exec" {
 		inline = [
 			"sudo /tmp/provision-scylla.sh",
-			"sudo service scylla-server start"
+			"sudo service scylla-server start",
+			"sudo /tmp/provision-scylla-schema.sh"
 		]
 	}
 

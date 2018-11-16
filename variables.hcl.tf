@@ -11,11 +11,16 @@ variable "cluster_admin_cidr" { type = "list" }
 variable "cluster_user_cidr" { type = "list" }
 
 variable "environment" { default = "development" }
-variable "version" { default = "0.1.0" }
+variable "version" { default = "0.2.0" }
 
 variable "private_key" { default = "keys/support.pem" }
 variable "public_key"	{ default = "keys/support.pub" }
 variable "template_dir" { default = "tpl" }
+
+variable "cql_user" { default = "scylla" }
+variable "cql_admin" { default = "scylla_admin" }
+variable "cql_ready_timeout" { default = "2m" }
+variable "system_auth_replication" { default = 3 }
 
 variable "scylla_args" {
 	type = "list"
