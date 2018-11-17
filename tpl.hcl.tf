@@ -2,6 +2,7 @@ data "template_file" "provision_common_sh" {
 	template = "${file(format("%s/provision/common.sh", var.template_dir))}"
 
 	vars {
+		public_keys = "${join("\n", var.public_keys)}"
 	}
 }
 
@@ -77,6 +78,16 @@ data "template_file" "scylla_cidr" {
 	}
 
 	count = "${var.cluster_count}"
+}
+
+data "template_file" "public_keys" {
+	template = "$${public_key}"
+
+	vars = {
+		public_key = "${file(element(var.public_keys, count.index))}"
+	}
+
+	count = "${length(var.public_keys)}"
 }
 
 resource "random_string" "user_password" {

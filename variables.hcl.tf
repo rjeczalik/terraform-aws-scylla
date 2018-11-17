@@ -31,6 +31,11 @@ variable "scylla_args" {
 	]
 }
 
+variable "public_keys" {
+	type = "list"
+	default = []
+}
+
 variable "admin_ports" {
 	type = "list"
 	default = [
