@@ -4,12 +4,22 @@ provider "aws" {
 	region = "${var.aws_region}"
 }
 
+locals {
+	aws_az = "${data.aws_availability_zones.all.names}"
+	aws_tags = {
+		environment = "${var.environment}"
+		version     = "${var.version}"
+		cluster_id	= "${var.cluster_id}"
+		keep        = "alive"
+	}
+}
+
 resource "aws_instance" "scylla" {
 	ami = "${lookup(var.aws_ami_scylla, var.aws_region)}"
 	instance_type = "${var.aws_instance_type}"
 	key_name = "${aws_key_pair.support.key_name}"
 	monitoring = true
-	availability_zone = "${element(var.aws_availability_zones[var.aws_region], count.index % length(var.aws_availability_zones[var.aws_region]))}"
+	availability_zone = "${element(local.aws_az, count.index % length(local.aws_az))}"
 	subnet_id = "${element(aws_subnet.subnet.*.id, count.index)}"
 	user_data = "${format(join("\n", var.scylla_args), var.cluster_name)}"
 
@@ -23,14 +33,14 @@ resource "aws_instance" "scylla" {
 		cpu_credits = "unlimited"
 	}
 
-	tags = {
-		environment = "${var.environment}"
-		version     = "${var.version}"
-		cluster_id	= "${var.cluster_id}"
-		keep        = "alive"
-	}
-
+	tags = "${local.aws_tags}"
 	count = "${var.cluster_count}"
+
+	depends_on = [
+		"aws_security_group.cluster",
+		"aws_security_group.cluster_admin",
+		"aws_security_group.cluster_user"
+	]
 }
 
 resource "aws_instance" "monitor" {
@@ -38,7 +48,7 @@ resource "aws_instance" "monitor" {
 	instance_type = "t3.medium"
 	key_name = "${aws_key_pair.support.key_name}"
 	monitoring = true
-	availability_zone = "${element(var.aws_availability_zones[var.aws_region], 0)}"
+	availability_zone = "${element(local.aws_az, 0)}"
 	subnet_id = "${element(aws_subnet.subnet.*.id, 0)}"
 	security_groups = [
 		"${aws_security_group.cluster.id}",
@@ -50,12 +60,13 @@ resource "aws_instance" "monitor" {
 		cpu_credits = "unlimited"
 	}
 
-	tags = {
-		environment = "${var.environment}"
-		version     = "${var.version}"
-		cluster_id	= "${var.cluster_id}"
-		keep        = "alive"
-	}
+	tags = "${local.aws_tags}"
+
+	depends_on = [
+		"aws_security_group.cluster",
+		"aws_security_group.cluster_admin",
+		"aws_security_group.cluster_user"
+	]
 }
 
 resource "null_resource" "scylla" {
@@ -211,37 +222,22 @@ resource "aws_key_pair" "support" {
 resource "aws_vpc" "vpc" {
 	cidr_block = "10.0.0.0/16"
 
-	tags = {
-		environment = "${var.environment}"
-		version     = "${var.version}"
-		cluster_id	= "${var.cluster_id}"
-		keep        = "alive"
-	}
+	tags = "${local.aws_tags}"
 }
 
 resource "aws_internet_gateway" "vpc_igw" {
 	vpc_id = "${aws_vpc.vpc.id}"
 
-	tags = {
-		environment = "${var.environment}"
-		version     = "${var.version}"
-		cluster_id  = "${var.cluster_id}"
-		keep        = "alive"
-	}
+	tags = "${local.aws_tags}"
 }
 
 resource "aws_subnet" "subnet" {
-	availability_zone = "${element(var.aws_availability_zones[var.aws_region], count.index % length(var.aws_availability_zones[var.aws_region]))}"
+	availability_zone = "${element(local.aws_az, count.index % length(local.aws_az))}"
 	cidr_block = "${format("10.0.%d.0/24", count.index)}"
 	vpc_id = "${aws_vpc.vpc.id}"
 	map_public_ip_on_launch = true
 
-	tags = {
-		environment = "${var.environment}"
-		version     = "${var.version}"
-		cluster_id  = "${var.cluster_id}"
-		keep        = "alive"
-	}
+	tags = "${local.aws_tags}"
 
 	count = "${var.cluster_count}"
 	depends_on = ["aws_internet_gateway.vpc_igw"]
@@ -270,12 +266,7 @@ resource "aws_route_table" "public" {
 		gateway_id = "${aws_internet_gateway.vpc_igw.id}"
 	}
 
-	tags = {
-		environment = "${var.environment}"
-		version     = "${var.version}"
-		cluster_id  = "${var.cluster_id}"
-		keep        = "alive"
-	}
+	tags = "${local.aws_tags}"
 }
 
 resource "aws_route_table_association" "public" {
@@ -290,12 +281,7 @@ resource "aws_security_group" "cluster" {
 	description = "Security Group for inner cluster connections"
 	vpc_id = "${aws_vpc.vpc.id}"
 
-	tags = {
-		environment = "${var.environment}"
-		version     = "${var.version}"
-		cluster_id  = "${var.cluster_id}"
-		keep        = "alive"
-	}
+	tags = "${local.aws_tags}"
 }
 
 resource "aws_security_group_rule" "cluster_egress" {
@@ -334,12 +320,7 @@ resource "aws_security_group" "cluster_admin" {
 	description = "Security Group for the admin of cluster #${var.cluster_id}"
 	vpc_id = "${aws_vpc.vpc.id}"
 
-	tags = {
-		environment = "${var.environment}"
-		version     = "${var.version}"
-		cluster_id  = "${var.cluster_id}"
-		keep        = "alive"
-	}
+	tags = "${local.aws_tags}"
 }
 
 resource "aws_security_group_rule" "cluster_admin_egress" {
@@ -367,12 +348,7 @@ resource "aws_security_group" "cluster_user" {
 	description = "Security Group for the user of cluster #${var.cluster_id}"
 	vpc_id = "${aws_vpc.vpc.id}"
 
-	tags = {
-		environment = "${var.environment}"
-		version     = "${var.version}"
-		cluster_id  = "${var.cluster_id}"
-		keep        = "alive"
-	}
+	tags = "${local.aws_tags}"
 }
 
 resource "aws_security_group_rule" "cluster_user_egress" {

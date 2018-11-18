@@ -1,3 +1,5 @@
+data "aws_availability_zones" "all" {}
+
 data "template_file" "provision_common_sh" {
 	template = "${file(format("%s/provision/common.sh", var.template_dir))}"
 
