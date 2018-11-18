@@ -85,12 +85,10 @@ data "template_file" "public_keys" {
 
 resource "random_string" "user_password" {
 	length = 16
-	special = true
-	override_special = "!@#$%&*()-_=+[]{}<>:?"
+	special = false
 }
 
 resource "random_string" "admin_password" {
 	length = 16
-	special = true
-	override_special = "!@#$%&*()-_=+[]{}<>:?"
+	special = false
 }
