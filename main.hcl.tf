@@ -99,8 +99,6 @@ resource "null_resource" "scylla" {
 			"chmod +x /tmp/provision-s3.sh",
 			"sudo /tmp/provision-s3.sh",
 			"/tmp/provision-s3.sh",
-			"chmod +x /tmp/provision-scylla.sh",
-			"chmod +x /tmp/provision-scylla-schema.sh",
 		]
 	}
 
@@ -123,9 +121,9 @@ resource "null_resource" "scylla_start" {
 
 	provisioner "remote-exec" {
 		inline = [
+			"chmod +x /tmp/provision-scylla.sh",
 			"sudo /tmp/provision-scylla.sh",
 			"sudo service scylla-server start",
-			"sudo /tmp/provision-scylla-schema.sh"
 		]
 	}
 
@@ -133,6 +131,28 @@ resource "null_resource" "scylla_start" {
 	depends_on = ["null_resource.scylla"]
 }
 
+resource "null_resource" "scylla_schema" {
+	triggers {
+		id = "${element(aws_instance.scylla.id, 0)}"
+	}
+
+	connection {
+		type = "ssh"
+		host = "${element(aws_eip.scylla.*.public_ip, 0)}"
+		user = "centos"
+		private_key = "${file(var.private_key)}"
+		timeout = "1m"
+	}
+
+	provisioner "remote-exec" {
+		inline = [
+			"chmod +x /tmp/provision-scylla-schema.sh",
+			"sudo /tmp/provision-scylla-schema.sh"
+		]
+	}
+
+	depends_on = ["null_resource.scylla_start"]
+}
 
 resource "null_resource" "monitor" {
 	triggers {
