@@ -182,7 +182,7 @@ resource "null_resource" "monitor" {
 
 	provisioner "file" {
 		destination = "/tmp/rule_config.yml"
-		source = "${var.template_dir}/config/rule_config.yml"
+		source = "${path.module}/tpl/config/rule_config.yml"
 	}
 
 	provisioner "file" {

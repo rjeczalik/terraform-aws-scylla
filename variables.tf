@@ -1,28 +1,79 @@
-variable "aws_access_key" { }
-variable "aws_secret_key" { }
-variable "aws_region" { }
-variable "aws_instance_type" { }
+variable "aws_access_key" {
+	description = ""
+}
 
-variable "cluster_id" { }
-variable "cluster_name" { }
-variable "cluster_count" { default = 1 }
-variable "cluster_stress_count" { default = 0 }
-variable "cluster_admin_cidr" { type = "list" }
-variable "cluster_user_cidr" { type = "list" }
+variable "aws_secret_key" {
+	description = ""
+}
 
-variable "environment" { default = "development" }
-variable "version" { default = "0.2.0" }
+variable "aws_region" {
+	description = ""
+}
 
-variable "private_key" { default = "keys/support.pem" }
-variable "public_key"	{ default = "keys/support.pub" }
-variable "template_dir" { default = "tpl" }
+variable "aws_instance_type" {
+	description = ""
+}
 
-variable "cql_user" { default = "scylla" }
-variable "cql_admin" { default = "scylla_admin" }
-variable "cql_ready_timeout" { default = "2m" }
-variable "system_auth_replication" { default = 3 }
+variable "cluster_id" {
+	description = ""
+}
+
+variable "cluster_name" {
+	description = ""
+}
+
+variable "cluster_count" {
+	description = ""
+	default = 1
+}
+
+variable "cluster_admin_cidr" {
+	description = ""
+	type = "list"
+}
+
+variable "cluster_user_cidr" {
+	description = ""
+	type = "list"
+}
+
+variable "environment" {
+	description = ""
+	default = "development"
+}
+
+variable "version" {
+	description = ""
+	default = "0.2.0"
+}
+
+variable "private_key" {
+	description = ""
+	default = "keys/support.pem"
+}
+
+variable "public_key" {
+	description = ""
+	default = "keys/support.pub"
+}
+
+variable "cql_user" {
+	description = ""
+	default = "scylla"
+}
+
+variable "cql_admin" {
+	description = ""
+	default = "scylla_admin"
+}
+
+variable "system_auth_replication" {
+	description = ""
+	default = 3
+}
 
 variable "scylla_args" {
+	description = ""
 	type = "list"
 	default = [
 		"--clustername %s",
@@ -32,11 +83,13 @@ variable "scylla_args" {
 }
 
 variable "public_keys" {
+	description = ""
 	type = "list"
 	default = []
 }
 
 variable "admin_ports" {
+	description = ""
 	type = "list"
 	default = [
 		22,
@@ -48,6 +101,7 @@ variable "admin_ports" {
 }
 
 variable "user_ports" {
+	description = ""
 	type = "list"
 	default = [
 		9042,
@@ -56,6 +110,7 @@ variable "user_ports" {
 }
 
 variable "node_ports" {
+	description = ""
 	type = "list"
 	default = [
 		7000,
@@ -64,6 +119,7 @@ variable "node_ports" {
 }
 
 variable "monitor_ports" {
+	description = ""
 	type = "list"
 	default = [
 		9100,
@@ -71,30 +127,8 @@ variable "monitor_ports" {
 	]
 }
 
-variable "aws_availability_zones" {
-	type = "map"
-	default = {
-		"us-east-1" = [
-			"us-east-1a",
-			"us-east-1b",
-			"us-east-1c",
-		]
-
-		"us-west-1" = [
-			"us-west-1a",
-			"us-west-1b",
-			"us-west-1c",
-		]
-
-		"us-west-2" = [
-			"us-west-2a",
-			"us-west-2b",
-			"us-west-2c",
-		]
-	}
-}
-
 variable "aws_ami_monitor" {
+	description = ""
 	type = "map"
 	default = {
 		"us-east-1" = "ami-04c172dadae705df1"
@@ -104,6 +138,7 @@ variable "aws_ami_monitor" {
 }
 
 variable "aws_ami_scylla" {
+	description = ""
 	type = "map"
 	default = {
 		"us-east-1" = "ami-0f4178bd33d6cfa48"
@@ -113,6 +148,7 @@ variable "aws_ami_scylla" {
 }
 
 variable "aws_ami_ubuntu" {
+	description = ""
 	type = "map"
 	default = {
 		"us-east-1" = "ami-0f9351b59be17920e"
@@ -122,6 +158,7 @@ variable "aws_ami_ubuntu" {
 }
 
 variable "aws_ami_centos" {
+	description = ""
 	type = "map"
 	default = {
 		"us-east-1" = "ami-4bf3d731"

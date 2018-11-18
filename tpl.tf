@@ -1,7 +1,7 @@
 data "aws_availability_zones" "all" {}
 
 data "template_file" "provision_common_sh" {
-	template = "${file(format("%s/provision/common.sh", var.template_dir))}"
+	template = "${file(format("%s/tpl/provision/common.sh", path.module))}"
 
 	vars {
 		public_keys = "${join("\n", var.public_keys)}"
@@ -9,7 +9,7 @@ data "template_file" "provision_common_sh" {
 }
 
 data "template_file" "provision_scylla_sh" {
-	template = "${file(format("%s/provision/scylla.sh", var.template_dir))}"
+	template = "${file(format("%s/tpl/provision/scylla.sh", path.module))}"
 
 	vars {
 		public_ip = "${element(aws_eip.scylla.*.public_ip, count.index)}"
@@ -23,7 +23,7 @@ data "template_file" "provision_scylla_sh" {
 }
 
 data "template_file" "provision_scylla_schema_sh" {
-	template = "${file(format("%s/provision/scylla-schema.sh", var.template_dir))}"
+	template = "${file(format("%s/tpl/provision/scylla-schema.sh", path.module))}"
 
 	vars = {
 		dc = "${var.aws_region}"
@@ -36,14 +36,14 @@ data "template_file" "provision_scylla_schema_sh" {
 }
 
 data "template_file" "provision_monitor_common_sh" {
-	template = "${file(format("%s/provision/monitor-common.sh", var.template_dir))}"
+	template = "${file(format("%s/tpl/provision/monitor-common.sh", path.module))}"
 
 	vars = {
 	}
 }
 
 data "template_file" "provision_monitor_sh" {
-	template = "${file(format("%s/provision/monitor.sh", var.template_dir))}"
+	template = "${file(format("%s/tpl/provision/monitor.sh", path.module))}"
 
 	vars = {
 		cluster_name = "${var.cluster_name}"
@@ -53,7 +53,7 @@ data "template_file" "provision_monitor_sh" {
 }
 
 data "template_file" "provision_s3_sh" {
-	template = "${file(format("%s/provision/s3.sh", var.template_dir))}"
+	template = "${file(format("%s/tpl/provision/s3.sh", path.module))}"
 
 	vars = {
 		bucket = "${data.template_file.bucket.rendered}"
