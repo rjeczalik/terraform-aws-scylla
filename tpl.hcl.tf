@@ -33,15 +33,6 @@ data "template_file" "provision_scylla_schema_sh" {
 	}
 }
 
-data "template_file" "provision_stress_sh" {
-	template = "${file(format("%s/provision/stress.sh", var.template_dir))}"
-
-	vars = {
-	}
-
-	count = "${var.cluster_stress_count}"
-}
-
 data "template_file" "provision_monitor_common_sh" {
 	template = "${file(format("%s/provision/monitor-common.sh", var.template_dir))}"
 

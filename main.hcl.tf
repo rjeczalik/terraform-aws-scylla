@@ -133,7 +133,7 @@ resource "null_resource" "scylla_start" {
 
 resource "null_resource" "scylla_schema" {
 	triggers {
-		id = "${element(aws_instance.scylla.id, 0)}"
+		id = "${element(aws_instance.scylla.*.id, 0)}"
 	}
 
 	connection {
