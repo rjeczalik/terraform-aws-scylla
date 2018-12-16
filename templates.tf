@@ -1,29 +1,33 @@
 data "aws_availability_zones" "all" {}
 
 data "template_file" "provision_common_sh" {
-	template = "${file(format("%s/tpl/provision/common.sh", path.module))}"
+	template = "${file(format("%s/scripts/common.sh", path.module))}"
 
 	vars {
 		public_keys = "${join("\n", var.public_keys)}"
 	}
 }
 
+data "external" "ifconfig_co" {
+	program = ["bash", "${path.module}/scripts/ifconfig-co.sh"]
+}
+
 data "template_file" "provision_scylla_sh" {
-	template = "${file(format("%s/tpl/provision/scylla.sh", path.module))}"
+	template = "${file(format("%s/scripts/scylla.sh", path.module))}"
 
 	vars {
 		public_ip = "${element(aws_eip.scylla.*.public_ip, count.index)}"
 		seeds = "${join(",", aws_eip.scylla.*.public_ip)}"
 		dc = "${var.aws_region}"
 		rack = "${format("Subnet%s", replace(element(aws_instance.scylla.*.availability_zone, count.index), "-", ""))}"
-		cluster_name = "${var.cluster_name}"
+		cluster_name = "${local.cluster_name}"
 	}
 
 	count = "${var.cluster_count}"
 }
 
 data "template_file" "provision_scylla_schema_sh" {
-	template = "${file(format("%s/tpl/provision/scylla-schema.sh", path.module))}"
+	template = "${file(format("%s/scripts/scylla-schema.sh", path.module))}"
 
 	vars = {
 		dc = "${var.aws_region}"
@@ -36,30 +40,45 @@ data "template_file" "provision_scylla_schema_sh" {
 }
 
 data "template_file" "provision_monitor_common_sh" {
-	template = "${file(format("%s/tpl/provision/monitor-common.sh", path.module))}"
+	template = "${file(format("%s/scripts/monitor-common.sh", path.module))}"
 
 	vars = {
 	}
 }
 
 data "template_file" "provision_monitor_sh" {
-	template = "${file(format("%s/tpl/provision/monitor.sh", path.module))}"
+	template = "${file(format("%s/scripts/monitor.sh", path.module))}"
 
 	vars = {
-		cluster_name = "${var.cluster_name}"
+		cluster_name = "${local.cluster_name}"
 		dc = "${var.aws_region}"
 		nodes_ips = "${join(" ", aws_eip.scylla.*.public_ip)}"
 	}
 }
 
 data "template_file" "provision_s3_sh" {
-	template = "${file(format("%s/tpl/provision/s3.sh", path.module))}"
+	template = "${file(format("%s/scripts/s3.sh", path.module))}"
 
 	vars = {
 		bucket = "${data.template_file.bucket.rendered}"
 		region = "${var.aws_region}"
 		access_key = "${aws_iam_access_key.backup.id}"
 		secret_key = "${aws_iam_access_key.backup.secret}"
+	}
+}
+
+data "template_file" "config_monitor_rule_yml" {
+	template = "${file(format("%s/configs/monitor_rule.yml", path.module))}"
+
+	vars = {
+		environment = "${var.environment}"
+		cluster_id = "${random_uuid.cluster_id.result}"
+		monitor_alert_from = "${var.monitor_alert_from}"
+		monitor_alert_to = "${var.monitor_alert_to}"
+		monitor_alert_hostport = "${var.monitor_alert_hostport}"
+		monitor_alert_username = "${var.monitor_alert_username}"
+		monitor_alert_identity = "${var.monitor_alert_identity}"
+		monitor_alert_password = "${var.monitor_alert_password}"
 	}
 }
 

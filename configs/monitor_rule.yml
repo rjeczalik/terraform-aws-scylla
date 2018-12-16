@@ -1,0 +1,23 @@
+receivers:
+  - name: 'team-X-mails-regular'
+    email_configs:
+    - from: "${monitor_alert_from}"
+      to: "${monitor_alert_to}"
+      smarthost: "${monitor_alert_hostport}"
+      auth_username: "${monitor_alert_username}"
+      auth_identity: "${monitor_alert_identity}"
+      auth_password: "${monitor_alert_password}"
+      send_resolved: true
+      headers:
+        Subject: "[${environment}] NORMAL Scylla Cloud - ClusterID: ${cluster_id}"
+  - name: "team-X-mails-urgent"
+    email_configs:
+    - from: "${monitor_alert_from}"
+      to: "${monitor_alert_to}"
+      smarthost: "${monitor_alert_hostport}"
+      auth_username: "${monitor_alert_username}"
+      auth_identity: "${monitor_alert_identity}"
+      auth_password: "${monitor_alert_password}"
+      send_resolved: true
+      headers:
+        Subject: "[${environment}] URGENT Scylla Cloud - ClusterID: ${cluster_id}"

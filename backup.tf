@@ -3,12 +3,12 @@ data "template_file" "bucket" {
 
 	vars = {
 		environment = "${var.environment}"
-		cluster_id = "${var.cluster_id}"
+		cluster_id = "${random_uuid.cluster_id.result}"
 	}
 }
 
 resource "aws_iam_user" "backup" {
-	name = "${format("cluster-bucket-%s", var.cluster_id)}"
+	name = "${format("cluster-bucket-%s", random_uuid.cluster_id.result)}"
 	path = "/users/"
 }
 
@@ -17,7 +17,7 @@ resource "aws_iam_access_key" "backup" {
 }
 
 resource "aws_iam_user_policy" "backup" {
-	name = "${format("cluster-bucket-%s-policy", var.cluster_id)}"
+	name = "${format("cluster-bucket-%s-policy", random_uuid.cluster_id.result)}"
 	user = "${aws_iam_user.backup.name}"
 
 	policy = <<EOF

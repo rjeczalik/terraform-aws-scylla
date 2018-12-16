@@ -22,6 +22,16 @@ fi
 
 popd
 
-./start-all.sh -v 2018.1 -d /prometheus-data
+# Workaround for:
+#
+#   Opening storage failed lock DB directory:
+#   open /prometheus/data/lock: permission denied"
+#
+data_dir=/opt/prometheus-data
+sudo mkdir -p $${data_dir}
+sudo chown -R centos:centos $${data_dir}
+sudo chmod -R 0777 $${data_dir}
+
+./start-all.sh -v 2018.1 -d $${data_dir}
 
 popd

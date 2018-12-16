@@ -9,9 +9,19 @@ locals {
 	aws_tags = {
 		environment = "${var.environment}"
 		version     = "${var.version}"
-		cluster_id	= "${var.cluster_id}"
+		cluster_id	= "${random_uuid.cluster_id.result}"
 		keep        = "alive"
 	}
+	private_key = "${tls_private_key.scylla.private_key_pem}"
+	public_key = "${tls_private_key.scylla.public_key_openssh}"
+	cluster_name = "cluster-${random_uuid.cluster_id.result}"
+}
+
+resource "random_uuid" "cluster_id" { }
+
+resource "tls_private_key" "scylla" {
+	algorithm = "RSA"
+	rsa_bits = "2048"
 }
 
 resource "aws_instance" "scylla" {
@@ -21,7 +31,7 @@ resource "aws_instance" "scylla" {
 	monitoring = true
 	availability_zone = "${element(local.aws_az, count.index % length(local.aws_az))}"
 	subnet_id = "${element(aws_subnet.subnet.*.id, count.index)}"
-	user_data = "${format(join("\n", var.scylla_args), var.cluster_name)}"
+	user_data = "${format(join("\n", var.scylla_args), local.cluster_name)}"
 
 	security_groups = [
 		"${aws_security_group.cluster.id}",
@@ -79,7 +89,7 @@ resource "null_resource" "scylla" {
 		type = "ssh"
 		host = "${element(aws_eip.scylla.*.public_ip, count.index)}"
 		user = "centos"
-		private_key = "${file(var.private_key)}"
+		private_key = "${local.private_key}"
 		timeout = "1m"
 	}
 
@@ -126,7 +136,7 @@ resource "null_resource" "scylla_start" {
 		type = "ssh"
 		host = "${element(aws_eip.scylla.*.public_ip, count.index)}"
 		user = "centos"
-		private_key = "${file(var.private_key)}"
+		private_key = "${local.private_key}"
 		timeout = "1m"
 	}
 
@@ -151,7 +161,7 @@ resource "null_resource" "scylla_schema" {
 		type = "ssh"
 		host = "${element(aws_eip.scylla.*.public_ip, 0)}"
 		user = "centos"
-		private_key = "${file(var.private_key)}"
+		private_key = "${local.private_key}"
 		timeout = "1m"
 	}
 
@@ -176,13 +186,13 @@ resource "null_resource" "monitor" {
 		type = "ssh"
 		host = "${aws_eip.monitor.public_ip}"
 		user = "centos"
-		private_key = "${file(var.private_key)}"
+		private_key = "${local.private_key}"
 		timeout = "1m"
 	}
 
 	provisioner "file" {
 		destination = "/tmp/rule_config.yml"
-		source = "${path.module}/tpl/config/rule_config.yml"
+		content = "${data.template_file.config_monitor_rule_yml.rendered}"
 	}
 
 	provisioner "file" {
@@ -215,8 +225,8 @@ resource "null_resource" "monitor" {
 }
 
 resource "aws_key_pair" "support" {
-	key_name = "support-scylladb-com"
-	public_key = "${file(var.public_key)}"
+	key_name = "cluster-support-${random_uuid.cluster_id.result}"
+	public_key = "${local.public_key}"
 }
 
 resource "aws_vpc" "vpc" {
@@ -277,7 +287,7 @@ resource "aws_route_table_association" "public" {
 }
 
 resource "aws_security_group" "cluster" {
-	name = "cluster"
+	name = "cluster-${random_uuid.cluster_id.result}"
 	description = "Security Group for inner cluster connections"
 	vpc_id = "${aws_vpc.vpc.id}"
 
@@ -316,8 +326,8 @@ resource "aws_security_group_rule" "cluster_monitor" {
 }
 
 resource "aws_security_group" "cluster_admin" {
-	name = "cluster-admin"
-	description = "Security Group for the admin of cluster #${var.cluster_id}"
+	name = "cluster-admin-${random_uuid.cluster_id.result}"
+	description = "Security Group for the admin of cluster #${random_uuid.cluster_id.result}"
 	vpc_id = "${aws_vpc.vpc.id}"
 
 	tags = "${local.aws_tags}"
@@ -335,7 +345,7 @@ resource "aws_security_group_rule" "cluster_admin_egress" {
 resource "aws_security_group_rule" "cluster_admin_ingress" {
 	type = "ingress"
 	security_group_id = "${aws_security_group.cluster_admin.id}"
-	cidr_blocks = "${var.cluster_admin_cidr}"
+	cidr_blocks = ["${compact(concat(list(format("%s/32", data.external.ifconfig_co.result.public_ip)), var.cluster_admin_cidr))}"]
 	from_port = "${element(var.admin_ports, count.index)}"
 	to_port = "${element(var.admin_ports, count.index)}"
 	protocol = "tcp"
@@ -344,8 +354,8 @@ resource "aws_security_group_rule" "cluster_admin_ingress" {
 }
 
 resource "aws_security_group" "cluster_user" {
-	name = "cluster-user"
-	description = "Security Group for the user of cluster #${var.cluster_id}"
+	name = "cluster-user-${random_uuid.cluster_id.result}"
+	description = "Security Group for the user of cluster #${random_uuid.cluster_id.result}"
 	vpc_id = "${aws_vpc.vpc.id}"
 
 	tags = "${local.aws_tags}"
@@ -363,7 +373,7 @@ resource "aws_security_group_rule" "cluster_user_egress" {
 resource "aws_security_group_rule" "cluster_user_ingress" {
 	type = "ingress"
 	security_group_id = "${aws_security_group.cluster_user.id}"
-	cidr_blocks = "${var.cluster_user_cidr}"
+	cidr_blocks = ["${compact(concat(list(format("%s/32", data.external.ifconfig_co.result.public_ip)), var.cluster_user_cidr))}"]
 	from_port = "${element(var.user_ports, count.index)}"
 	to_port = "${element(var.user_ports, count.index)}"
 	protocol = "tcp"

@@ -3,7 +3,9 @@
 set -eu
 
 if ! type aws &>/dev/null; then
-	yum install awscli screen -y
+	yum install epel-release
+	yum -y install python-pip
+	pip install awscli --force-reinstall --upgrade
 fi
 
 aws configure set default.aws_access_key_id ${access_key}

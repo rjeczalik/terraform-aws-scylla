@@ -1,40 +1,38 @@
 variable "aws_access_key" {
 	description = ""
+	default = ""
 }
 
 variable "aws_secret_key" {
 	description = ""
+	default = ""
 }
 
 variable "aws_region" {
 	description = ""
+	default = "us-east-1"
 }
 
 variable "aws_instance_type" {
 	description = ""
-}
-
-variable "cluster_id" {
-	description = ""
-}
-
-variable "cluster_name" {
-	description = ""
+	default = "i3.large"
 }
 
 variable "cluster_count" {
 	description = ""
-	default = 1
+	default = 3
 }
 
 variable "cluster_admin_cidr" {
 	description = ""
 	type = "list"
+	default = []
 }
 
 variable "cluster_user_cidr" {
 	description = ""
 	type = "list"
+	default = []
 }
 
 variable "environment" {
@@ -44,17 +42,7 @@ variable "environment" {
 
 variable "version" {
 	description = ""
-	default = "0.2.0"
-}
-
-variable "private_key" {
-	description = ""
-	default = "keys/support.pem"
-}
-
-variable "public_key" {
-	description = ""
-	default = "keys/support.pub"
+	default = "0.3.0"
 }
 
 variable "cql_user" {
@@ -86,6 +74,36 @@ variable "public_keys" {
 	description = ""
 	type = "list"
 	default = []
+}
+
+variable "monitor_alert_from" {
+	description = ""
+	default = ""
+}
+
+variable "monitor_alert_to" {
+	description = ""
+	default = ""
+}
+
+variable "monitor_alert_hostport" {
+	description = ""
+	default = ""
+}
+
+variable "monitor_alert_username" {
+	description = ""
+	default = ""
+}
+
+variable "monitor_alert_identity" {
+	description = ""
+	default = ""
+}
+
+variable "monitor_alert_password" {
+	description = ""
+	default = ""
 }
 
 variable "admin_ports" {
@@ -144,16 +162,6 @@ variable "aws_ami_scylla" {
 		"us-east-1" = "ami-0f4178bd33d6cfa48"
 		"us-west-1" = "ami-0a9db5299a5ee4409"
 		"us-west-2" = "ami-0d82243436d964da0"
-	}
-}
-
-variable "aws_ami_ubuntu" {
-	description = ""
-	type = "map"
-	default = {
-		"us-east-1" = "ami-0f9351b59be17920e"
-		"us-west-1" = "ami-0e066bd33054ef120"
-		"us-west-2" = "ami-0afae182eed9d2b46"
 	}
 }
 
