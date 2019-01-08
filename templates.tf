@@ -16,8 +16,8 @@ data "template_file" "provision_scylla_sh" {
 	template = "${file(format("%s/scripts/scylla.sh", path.module))}"
 
 	vars {
-		public_ip = "${element(aws_eip.scylla.*.public_ip, count.index)}"
-		seeds = "${join(",", aws_eip.scylla.*.public_ip)}"
+		ip = "${var.cluster_broadcast == "private" ? element(aws_instance.scylla.*.private_ip, count.index) : element(aws_eip.scylla.*.public_ip, count.index)}"
+		seeds = "${var.cluster_broadcast == "private" ? join(",", aws_instance.scylla.*.private_ip) : join(",", aws_eip.scylla.*.public_ip)}"
 		dc = "${var.aws_region}"
 		rack = "${format("Subnet%s", replace(element(aws_instance.scylla.*.availability_zone, count.index), "-", ""))}"
 		cluster_name = "${local.cluster_name}"
@@ -52,7 +52,7 @@ data "template_file" "provision_monitor_sh" {
 	vars = {
 		cluster_name = "${local.cluster_name}"
 		dc = "${var.aws_region}"
-		nodes_ips = "${join(" ", aws_eip.scylla.*.public_ip)}"
+		nodes_ips = "${var.cluster_broadcast == "private" ? join(" ", aws_instance.scylla.*.private_ip) : join(" ", aws_eip.scylla.*.public_ip)}"
 	}
 }
 
@@ -86,7 +86,7 @@ data "template_file" "scylla_cidr" {
 	template = "$${cidr}"
 
 	vars = {
-		cidr = "${element(aws_eip.scylla.*.public_ip, count.index)}/32"
+		cidr = "${var.cluster_broadcast == "private" ? element(aws_instance.scylla.*.private_ip, count.index) : element(aws_eip.scylla.*.public_ip, count.index)}/32"
 	}
 
 	count = "${var.cluster_count}"

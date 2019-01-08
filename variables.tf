@@ -35,6 +35,11 @@ variable "cluster_user_cidr" {
 	default = []
 }
 
+variable "cluster_broadcast" {
+	description = ""
+	default = "public"
+}
+
 variable "environment" {
 	description = ""
 	default = "development"

@@ -306,7 +306,21 @@ resource "aws_security_group_rule" "cluster_egress" {
 resource "aws_security_group_rule" "cluster_ingress" {
 	type = "ingress"
 	security_group_id = "${aws_security_group.cluster.id}"
-	cidr_blocks = ["${aws_eip.monitor.public_ip}/32", "${data.template_file.scylla_cidr.*.rendered}"]
+	cidr_blocks = [
+		"${aws_eip.monitor.public_ip}/32",
+		"${data.template_file.scylla_cidr.*.rendered}"
+	]
+	from_port = "${element(var.node_ports, count.index)}"
+	to_port = "${element(var.node_ports, count.index)}"
+	protocol = "tcp"
+
+	count = "${length(var.node_ports)}"
+}
+
+resource "aws_security_group_rule" "cluster_ingress_sg" {
+	type = "ingress"
+	security_group_id = "${aws_security_group.cluster.id}"
+	source_security_group_id = "${aws_security_group.cluster.id}"
 	from_port = "${element(var.node_ports, count.index)}"
 	to_port = "${element(var.node_ports, count.index)}"
 	protocol = "tcp"
@@ -317,7 +331,20 @@ resource "aws_security_group_rule" "cluster_ingress" {
 resource "aws_security_group_rule" "cluster_monitor" {
 	type = "ingress"
 	security_group_id = "${aws_security_group.cluster.id}"
-	cidr_blocks = ["${aws_eip.monitor.public_ip}/32"]
+	cidr_blocks = [
+		"${aws_eip.monitor.public_ip}/32",
+	]
+	from_port = "${element(var.monitor_ports, count.index)}"
+	to_port = "${element(var.monitor_ports, count.index)}"
+	protocol = "tcp"
+
+	count = "${length(var.monitor_ports)}"
+}
+
+resource "aws_security_group_rule" "cluster_monitor_sg" {
+	type = "ingress"
+	security_group_id = "${aws_security_group.cluster.id}"
+	source_security_group_id = "${aws_security_group.cluster.id}"
 	from_port = "${element(var.monitor_ports, count.index)}"
 	to_port = "${element(var.monitor_ports, count.index)}"
 	protocol = "tcp"
