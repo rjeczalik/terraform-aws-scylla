@@ -170,6 +170,18 @@ variable "aws_ami_scylla" {
 	}
 }
 
+variable "aws_ami_scylla_oss" {
+	description = ""
+	type = "map"
+	default = {
+		"us-east-1" = "ami-0a0e33a6a9ad49e28"
+		"us-west-1" = "ami-0d0470b0d3adf8e62"
+		"us-west-2" = "ami-0eb3613c5069e80c5"
+		"eu-west-1" = "ami-09dc493608b93279e"
+		"sa-east-1" = "ami-0ceba50df0b950d4a"
+	}
+}
+
 variable "aws_ami_centos" {
 	description = ""
 	type = "map"

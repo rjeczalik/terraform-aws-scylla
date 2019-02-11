@@ -26,6 +26,7 @@ resource "tls_private_key" "scylla" {
 
 resource "aws_instance" "scylla" {
 	ami = "${lookup(var.aws_ami_scylla, var.aws_region)}"
+	/* ami = "${lookup(var.aws_ami_scylla_oss, var.aws_region)}" */
 	instance_type = "${var.aws_instance_type}"
 	key_name = "${aws_key_pair.support.key_name}"
 	monitoring = true
@@ -90,7 +91,7 @@ resource "null_resource" "scylla" {
 		host = "${element(aws_eip.scylla.*.public_ip, count.index)}"
 		user = "centos"
 		private_key = "${local.private_key}"
-		timeout = "1m"
+		timeout = "5m"
 	}
 
 	provisioner "file" {
@@ -137,7 +138,7 @@ resource "null_resource" "scylla_start" {
 		host = "${element(aws_eip.scylla.*.public_ip, count.index)}"
 		user = "centos"
 		private_key = "${local.private_key}"
-		timeout = "1m"
+		timeout = "5m"
 	}
 
 	provisioner "remote-exec" {
@@ -162,7 +163,7 @@ resource "null_resource" "scylla_schema" {
 		host = "${element(aws_eip.scylla.*.public_ip, 0)}"
 		user = "centos"
 		private_key = "${local.private_key}"
-		timeout = "1m"
+		timeout = "5m"
 	}
 
 	provisioner "remote-exec" {
@@ -187,7 +188,7 @@ resource "null_resource" "monitor" {
 		host = "${aws_eip.monitor.public_ip}"
 		user = "centos"
 		private_key = "${local.private_key}"
-		timeout = "1m"
+		timeout = "5m"
 	}
 
 	provisioner "file" {
