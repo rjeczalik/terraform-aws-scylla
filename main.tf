@@ -44,7 +44,7 @@ resource "aws_instance" "scylla" {
 		cpu_credits = "unlimited"
 	}
 
-	tags = "${local.aws_tags}"
+	tags = "${merge(local.aws_tags, map("type", "scylla"))}"
 	count = "${var.cluster_count}"
 
 	depends_on = [
@@ -71,7 +71,7 @@ resource "aws_instance" "monitor" {
 		cpu_credits = "unlimited"
 	}
 
-	tags = "${local.aws_tags}"
+	tags = "${merge(local.aws_tags, map("type", "monitor"))}"
 
 	depends_on = [
 		"aws_security_group.cluster",
@@ -258,6 +258,8 @@ resource "aws_eip" "scylla" {
 	vpc = true
 	instance = "${element(aws_instance.scylla.*.id, count.index)}"
 
+	tags = "${merge(local.aws_tags, map("type", "scylla"))}"
+
 	count = "${var.cluster_count}"
 	depends_on = ["aws_internet_gateway.vpc_igw"]
 }
@@ -265,6 +267,8 @@ resource "aws_eip" "scylla" {
 resource "aws_eip" "monitor" {
 	vpc = true
 	instance = "${aws_instance.monitor.id}"
+
+	tags = "${merge(local.aws_tags, map("type", "monitor"))}"
 
 	depends_on = ["aws_internet_gateway.vpc_igw"]
 }
