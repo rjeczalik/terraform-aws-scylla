@@ -33,3 +33,7 @@ To destroy the cluster, tear it down with:
 ```
 $ terraform destroy -auto-approve
 ```
+
+### Related modules
+
+- https://github.com/rjeczalik/terraform-aws-scylla-bench
