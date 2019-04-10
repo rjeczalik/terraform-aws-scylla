@@ -1,1 +1,1 @@
-# terraform-scylladb
+# terraform-aws-scylladb
