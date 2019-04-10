@@ -1,6 +1,6 @@
 # terraform-aws-scylladb
 
-Terraform module for deploying ScyllaDB cluster on AWS.
+Terraform module for deploying ScyllaDB cluster on AWS. It deploys also [Scylla Monitoring Stack](https://docs.scylladb.com/operating-scylla/monitoring/monitoring_stack/) alongside the cluster, to monitor its metrics.
 
 ### Example
 
