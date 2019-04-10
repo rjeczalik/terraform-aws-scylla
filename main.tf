@@ -15,6 +15,7 @@ locals {
 	private_key = "${tls_private_key.scylla.private_key_pem}"
 	public_key = "${tls_private_key.scylla.public_key_openssh}"
 	cluster_name = "cluster-${random_uuid.cluster_id.result}"
+	scylla_ami= "${lookup(var.aws_ami_scylla, format("%s_%s", var.cluster_scylla_version, var.aws_region))}"
 }
 
 resource "random_uuid" "cluster_id" { }
@@ -25,8 +26,7 @@ resource "tls_private_key" "scylla" {
 }
 
 resource "aws_instance" "scylla" {
-	ami = "${lookup(var.aws_ami_scylla, var.aws_region)}"
-	/* ami = "${lookup(var.aws_ami_scylla_oss, var.aws_region)}" */
+	ami = "${local.scylla_ami}"
 	instance_type = "${var.aws_instance_type}"
 	key_name = "${aws_key_pair.support.key_name}"
 	monitoring = true

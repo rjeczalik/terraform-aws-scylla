@@ -160,25 +160,23 @@ variable "aws_ami_monitor" {
 	}
 }
 
+variable "cluster_scylla_version" {
+	description = ""
+	default = "3.0.3"
+}
+
 variable "aws_ami_scylla" {
 	description = ""
 	type = "map"
 	default = {
-		"us-east-1" = "ami-0f4178bd33d6cfa48"
-		"us-west-1" = "ami-0a9db5299a5ee4409"
-		"us-west-2" = "ami-0d82243436d964da0"
-	}
-}
-
-variable "aws_ami_scylla_oss" {
-	description = ""
-	type = "map"
-	default = {
-		"us-east-1" = "ami-0a0e33a6a9ad49e28"
-		"us-west-1" = "ami-0d0470b0d3adf8e62"
-		"us-west-2" = "ami-0eb3613c5069e80c5"
-		"eu-west-1" = "ami-09dc493608b93279e"
-		"sa-east-1" = "ami-0ceba50df0b950d4a"
+		"2.3.2_us-east-1" = "ami-0f4178bd33d6cfa48"
+		"2.3.2_us-west-1" = "ami-0a9db5299a5ee4409"
+		"2.3.2_us-west-2" = "ami-0d82243436d964da0"
+		"3.0.3_us-east-1" = "ami-0a0e33a6a9ad49e28"
+		"3.0.3_us-west-1" = "ami-0d0470b0d3adf8e62"
+		"3.0.3_us-west-2" = "ami-0eb3613c5069e80c5"
+		"3.0.3_eu-west-1" = "ami-09dc493608b93279e"
+		"3.0.3_sa-east-1" = "ami-0ceba50df0b950d4a"
 	}
 }
 
