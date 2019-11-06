@@ -2,7 +2,7 @@
 
 set -eu
 
-curl -o /usr/bin/yq -sSL https://github.com/mikefarah/yq/releases/download/2.1.2/yq_linux_amd64
+curl -o /usr/bin/yq -sSL https://github.com/mikefarah/yq/releases/download/2.4.1/yq_linux_amd64
 chmod +x /usr/bin/yq
 
 mkdir -p ~/.ssh
