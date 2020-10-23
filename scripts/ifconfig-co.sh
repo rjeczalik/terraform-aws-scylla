@@ -2,4 +2,4 @@
 
 set -eu
 
-curl -sSL ifconfig.co | xargs -I{} echo $'{"public_ip":"{}"}'
+curl -sSL ifconfig.me | xargs -I{} echo $'{"public_ip":"{}"}'
